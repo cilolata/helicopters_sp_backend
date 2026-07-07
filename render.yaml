@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: helicopters-sp-backend
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: DUMP1090_HOST
+        sync: false
+      - key: POLL_INTERVAL_MS
+        value: 5000
