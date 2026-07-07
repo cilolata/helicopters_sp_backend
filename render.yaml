@@ -15,3 +15,5 @@ services:
         sync: false
       - key: POLL_INTERVAL_MS
         value: 5000
+      - key: CORS_ORIGIN
+        sync: false
