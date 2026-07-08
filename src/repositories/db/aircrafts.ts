@@ -10,6 +10,7 @@ export class AircraftsRepository {
 
   async findByDate(dateStr: string) {
     const [y, m, d] = dateStr.split('-').map(Number);
+    if (m < 1 || m > 12 || d < 1 || d > 31) throw new Error('Data inválida');
     // BRT 00:00:00 = UTC 03:00:00 / BRT 23:59:59 = UTC next-day 02:59:59
     const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
     const end   = new Date(Date.UTC(y, m - 1, d + 1, 2, 59, 59, 999));
@@ -32,6 +33,7 @@ export class AircraftsRepository {
       where:   { icao_hex, captured_at: { gte: start } },
       select:  { lat: true, lon: true, captured_at: true },
       orderBy: { captured_at: 'asc' },
+      take:    2000,
     });
   }
 

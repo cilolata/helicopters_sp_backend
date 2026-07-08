@@ -63,14 +63,16 @@ export class SaveAircraftUseCase {
         type:         'helicopter',
       });
 
-      await this.repository.savePosition(icao, ac.lat!, ac.lon!, toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null);
-      await this.repository.saveAircraft({
-        icao_hex:      icao,
-        first_seen:    now,
-        last_seen:     now,
-        last_callsign: ac.flight?.trim() ?? null,
-        last_squawk:   ac.squawk ?? null,
-      });
+      await Promise.all([
+        this.repository.savePosition(icao, ac.lat!, ac.lon!, toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null),
+        this.repository.saveAircraft({
+          icao_hex:      icao,
+          first_seen:    now,
+          last_seen:     now,
+          last_callsign: ac.flight?.trim().slice(0, 10) ?? null,
+          last_squawk:   ac.squawk?.slice(0, 4) ?? null,
+        }),
+      ]);
     }
 
     updateCache(live);

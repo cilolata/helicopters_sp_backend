@@ -16,6 +16,7 @@ model Aircraft {
   last_callsign String?  @db.VarChar(10)
   last_squawk   String?  @db.VarChar(4)
 
+  @@index([last_seen(sort: Desc)])
   @@map("aircraft")
 }
 

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import { env } from "./env";
 import "./utils/scheduler";
 import { aircrafts, aircraftsToday, aircraftRoute, aircraftsHistory } from "./controllers/aircrafts";
@@ -25,9 +26,12 @@ app.use(helmet({
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json());
 
-app.get("/aircrafts", aircrafts);
-app.get("/aircrafts/today", aircraftsToday);
-app.get("/aircrafts/history", aircraftsHistory);
-app.get("/aircrafts/:icao/route", aircraftRoute);
+const liveLimit    = rateLimit({ windowMs: 10_000, limit: 10, standardHeaders: true, legacyHeaders: false });
+const historyLimit = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: true, legacyHeaders: false });
+
+app.get("/aircrafts",            liveLimit,    aircrafts);
+app.get("/aircrafts/today",      historyLimit, aircraftsToday);
+app.get("/aircrafts/history",    historyLimit, aircraftsHistory);
+app.get("/aircrafts/:icao/route", historyLimit, aircraftRoute);
 
 export { app };
