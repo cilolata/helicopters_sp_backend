@@ -17,7 +17,7 @@ export interface AircraftRaw {
   on_ground?: boolean | null; // ADSB.fi usa on_ground
   category?:  string | null;  // A7 = helicóptero
 }
-
+ 
 export interface AircraftDB {
   id?:           number | null;
   icao_hex:      string     ;
@@ -25,6 +25,9 @@ export interface AircraftDB {
   last_seen?:    Date;
   last_callsign?: string | null;
   last_squawk?:  string | null;
+  operator?:     string | null;
+  owner?:        string | null;
+  model?:        string | null;
 }
 
 export interface PositionDB {

@@ -26,6 +26,22 @@ export const aircraftsToday = async (_req: Request, res: Response) => {
 const ICAO_RE = /^[0-9A-Fa-f]{6}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+export const aircraftsExport = async (req: Request, res: Response) => {
+  try {
+    const date = String(req.query.date ?? '');
+    if (!DATE_RE.test(date)) {
+      res.status(400).json({ error: 'Parâmetro date inválido. Use YYYY-MM-DD.' });
+      return;
+    }
+    const repo = new AircraftsRepository();
+    const rows = await repo.findForExport(date);
+    res.json(rows);
+  } catch (err) {
+    console.error('[aircrafts/export]', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+};
+
 export const aircraftsHistory = async (req: Request, res: Response) => {
   try {
     const date = String(req.query.date ?? '');

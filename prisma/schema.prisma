@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
@@ -15,6 +14,9 @@ model Aircraft {
   last_seen     DateTime @db.Timestamptz(6)
   last_callsign String?  @db.VarChar(10)
   last_squawk   String?  @db.VarChar(4)
+  operator      String?  @db.VarChar(200)
+  owner         String?  @db.VarChar(200)
+  model         String?  @db.VarChar(100)
 
   @@index([last_seen(sort: Desc)])
   @@map("aircraft")

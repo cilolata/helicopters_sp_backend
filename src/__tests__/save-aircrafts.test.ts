@@ -3,22 +3,20 @@ import { IAircraftsRepository } from '../repositories/aircrafts.repository.inter
 import { Dump1090Response } from '../entities/models/aircraft.interface';
 import { getCache } from '../lib/aircraft-cache';
 
-// Usa o mock em src/__mocks__/prisma-data/anac-registry.json (via jest.config.js moduleNameMapper)
-jest.mock('../lib/helicopter-registry', () => {
-  const registry = new Map([
-    ['PPAIS', { owner: 'LUCAS MARTINS CARDOSO', model: 'R44' }],
-    ['PPDUM', { owner: 'DU MOTOS LTDA',          model: 'R66' }],
-    ['PRAEL', { owner: 'EMPRESA AEREA LTDA',      model: 'S61' }],
-  ]);
-  return { helicopterRegistry: registry };
-});
+const testRegistry = new Map([
+  ['PPAIS', { owner: 'LUCAS MARTINS CARDOSO', model: 'R44',  operator: null }],
+  ['PPDUM', { owner: 'DU MOTOS LTDA',          model: 'R66',  operator: null }],
+  ['PRAEL', { owner: 'EMPRESA AEREA LTDA',      model: 'S61',  operator: null }],
+]);
 
 const mockRepo: IAircraftsRepository = {
-  savePosition: jest.fn().mockResolvedValue(undefined),
-  saveAircraft: jest.fn().mockResolvedValue(undefined),
-  findToday:    jest.fn().mockResolvedValue([]),
-  findByDate:   jest.fn().mockResolvedValue([]),
-  findRoute:    jest.fn().mockResolvedValue([]),
+  savePosition:      jest.fn().mockResolvedValue(undefined),
+  saveAircraft:      jest.fn().mockResolvedValue(undefined),
+  findToday:         jest.fn().mockResolvedValue([]),
+  findByDate:        jest.fn().mockResolvedValue([]),
+  findForExport:     jest.fn().mockResolvedValue([]),
+  findRoute:         jest.fn().mockResolvedValue([]),
+  deleteOldPositions: jest.fn().mockResolvedValue(0),
 };
 
 // Helicóptero válido dentro de São Paulo
@@ -42,7 +40,7 @@ describe('SaveAircraftUseCase — filtragem de helicópteros', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new SaveAircraftUseCase(mockRepo);
+    useCase = new SaveAircraftUseCase(mockRepo, testRegistry);
   });
 
   it('aceita aeronave com matrícula ANAC de helicóptero (PP-AIS → PPAIS)', async () => {
@@ -160,7 +158,7 @@ describe('SaveAircraftUseCase — integridade dos dados salvos', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useCase = new SaveAircraftUseCase(mockRepo);
+    useCase = new SaveAircraftUseCase(mockRepo, testRegistry);
   });
 
   it('salva posição com lat/lon/altitude corretos', async () => {

@@ -12,6 +12,7 @@ export interface LiveAircraft {
   on_ground:    number;
   captured_at:  string;
   type:         'helicopter';
+  operator:     string | null;
 }
 
 let cache: LiveAircraft[] = [];

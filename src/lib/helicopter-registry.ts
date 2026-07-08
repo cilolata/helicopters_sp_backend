@@ -4,6 +4,7 @@ import { join } from "path";
 interface AnacEntry {
   owner: string | null;
   model: string | null;
+  operator: string | null;
 }
 
 const data: Record<string, AnacEntry> = JSON.parse(

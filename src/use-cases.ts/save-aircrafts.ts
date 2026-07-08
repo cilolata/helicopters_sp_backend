@@ -1,7 +1,12 @@
 import { IAircraftsRepository } from "../repositories/aircrafts.repository.interface";
 import { AircraftRaw, Dump1090Response } from "../entities/models/aircraft.interface";
-import { helicopterRegistry } from "../lib/helicopter-registry";
 import { updateCache, LiveAircraft } from "../lib/aircraft-cache";
+
+export interface AnacEntry {
+  owner: string | null;
+  model: string | null;
+  operator: string | null;
+}
 
 function toAlt(v: number | string | null | undefined): number | null {
   if (v == null || v === 'ground') return null;
@@ -13,7 +18,10 @@ function normalizeCallsign(flight: string): string {
 }
 
 export class SaveAircraftUseCase {
-  constructor(private repository: IAircraftsRepository) {}
+  constructor(
+    private repository: IAircraftsRepository,
+    private registry: Map<string, AnacEntry>,
+  ) {}
 
   private static readonly SP_BOUNDS = {
     minLat: -24.010, maxLat: -23.356,
@@ -42,7 +50,7 @@ export class SaveAircraftUseCase {
       if (ac.ground)              continue;
 
       const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
-      const entry    = callsign ? helicopterRegistry.get(callsign) : undefined;
+      const entry    = callsign ? this.registry.get(callsign) : undefined;
       if (!entry) continue;
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
@@ -52,6 +60,7 @@ export class SaveAircraftUseCase {
         callsign:     ac.flight?.trim() ?? null,
         owner:        entry.owner,
         model:        entry.model,
+        operator:     entry.operator,
         altitude:     toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null,
         ground_speed: ac.gs ?? null,
         track:        ac.track ?? null,
@@ -71,6 +80,9 @@ export class SaveAircraftUseCase {
           last_seen:     now,
           last_callsign: ac.flight?.trim().slice(0, 10) ?? null,
           last_squawk:   ac.squawk?.slice(0, 4) ?? null,
+          operator:      entry.operator ?? null,
+          owner:         entry.owner    ?? null,
+          model:         entry.model    ?? null,
         }),
       ]);
     }
