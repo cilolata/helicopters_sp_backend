@@ -1,15 +1,15 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-interface RegistryEntry {
-  registration: string;
-  model:        string | null;
-  manufacturer: string | null;
-  icao_type:    string | null;
+interface AnacEntry {
+  owner: string | null;
+  model: string | null;
 }
 
-const entries: RegistryEntry[] = JSON.parse(
-  readFileSync(join(__dirname, "../../prisma/data/helicopters.json"), "utf-8")
+const data: Record<string, AnacEntry> = JSON.parse(
+  readFileSync(join(__dirname, "../../prisma/data/anac-registry.json"), "utf-8")
 );
 
-export const helicopterRegistry = new Set(entries.map(e => e.registration));
+export const helicopterRegistry = new Map<string, AnacEntry>(Object.entries(data));
+
+console.log(`[anac-registry] ${helicopterRegistry.size} helicópteros carregados`);

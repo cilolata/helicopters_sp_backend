@@ -8,10 +8,13 @@ function toAlt(v: number | string | null | undefined): number | null {
   return typeof v === 'number' ? v : null;
 }
 
+function normalizeCallsign(flight: string): string {
+  return flight.trim().replace(/-/g, '').toUpperCase();
+}
+
 export class SaveAircraftUseCase {
   constructor(private repository: IAircraftsRepository) {}
 
-  // Bounding box do município de São Paulo (capital)
   private static readonly SP_BOUNDS = {
     minLat: -24.010, maxLat: -23.356,
     minLon: -46.826, maxLon: -46.365,
@@ -27,52 +30,28 @@ export class SaveAircraftUseCase {
     return !!ac.hex && ac.lat != null && ac.lon != null && (ac.messages ?? 0) >= 1;
   }
 
-  private static AIRLINE_PREFIXES = ['GOL', 'GLO', 'TAM', 'AZU', 'ONE', 'BRL', 'PTB', 'LAM', 'VRG'];
-
-  private isHelicopter(ac: AircraftRaw): boolean {
-    if (ac.ground) return false;
-
-    const callsign = ac.flight?.trim() ?? '';
-
-    // Rejeita prefixos de companhias aéreas conhecidas
-    if (callsign && SaveAircraftUseCase.AIRLINE_PREFIXES.some(p => callsign.startsWith(p))) return false;
-
-    // Confirmação positiva pelo campo category do ADS-B (A7 = rotorcraft)
-    if (ac.category === 'A7') return true;
-
-    // Confirmação positiva pelo registro ANAC
-    if (callsign && helicopterRegistry.has(callsign)) return true;
-
-    // Se tem callsign mas não está no registro → provavelmente avião
-    if (callsign) return false;
-
-    // Sem callsign: aceita só se altitude E velocidade forem muito baixas
-    const altitude = toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro);
-    const speed    = ac.gs ?? null;
-    if (altitude != null && altitude >= 1500) return false;
-    if (speed    != null && speed    >= 100)  return false;
-
-    // Sem callsign, baixo e lento: possivelmente helicóptero local
-    return altitude != null || speed != null;
-  }
-
   async execute(response: Dump1090Response): Promise<void> {
-    const now = new Date();
+    const now  = new Date();
     const live: LiveAircraft[] = [];
 
     const list = response.aircraft ?? response.ac ?? [];
     for (const ac of list) {
-      // normaliza campo ground (dump1090 usa `ground`, adsb.fi usa `on_ground`)
       if (ac.on_ground != null && ac.ground == null) ac.ground = ac.on_ground;
-      if (!this.isValid(ac))        continue;
-      if (!this.isInSaoPaulo(ac))   continue;
-      if (!this.isHelicopter(ac))   continue;
+      if (!this.isValid(ac))      continue;
+      if (!this.isInSaoPaulo(ac)) continue;
+      if (ac.ground)              continue;
+
+      const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
+      const entry    = callsign ? helicopterRegistry.get(callsign) : undefined;
+      if (!entry) continue;
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
 
       live.push({
         icao_hex:     icao,
         callsign:     ac.flight?.trim() ?? null,
+        owner:        entry.owner,
+        model:        entry.model,
         altitude:     toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null,
         ground_speed: ac.gs ?? null,
         track:        ac.track ?? null,

@@ -3,13 +3,16 @@ import prisma from "../../config/database";
 
 export class AircraftsRepository {
   async findToday() {
-    return this.findByDate(new Date().toISOString().slice(0, 10));
+    // Get today's date in BRT (UTC-3)
+    const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    return this.findByDate(brtNow.toISOString().slice(0, 10));
   }
 
   async findByDate(dateStr: string) {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const start = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const end   = new Date(y, m - 1, d, 23, 59, 59, 999);
+    // BRT 00:00:00 = UTC 03:00:00 / BRT 23:59:59 = UTC next-day 02:59:59
+    const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
+    const end   = new Date(Date.UTC(y, m - 1, d + 1, 2, 59, 59, 999));
     return prisma.aircraft.findMany({
       where:   { last_seen: { gte: start, lte: end } },
       orderBy: { last_seen: 'desc' },
@@ -21,8 +24,10 @@ export class AircraftsRepository {
   }
 
   async findRoute(icao_hex: string) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    // BRT midnight = UTC 03:00 of today in BRT
+    const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const [y, m, d] = brtNow.toISOString().slice(0, 10).split('-').map(Number);
+    const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
     return prisma.position.findMany({
       where:   { icao_hex, captured_at: { gte: start } },
       select:  { lat: true, lon: true, captured_at: true },
