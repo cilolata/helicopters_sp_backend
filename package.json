@@ -4,7 +4,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "rm -rf dist && tsc",
+    "build": "rm -rf dist && prisma generate && tsc",
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
