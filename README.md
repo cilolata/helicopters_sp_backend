@@ -104,7 +104,7 @@ Copie `backend/.env.example` para `backend/.env`:
 | `DATABASE_URL` | — | Connection string Prisma (pooler) |
 | `DIRECT_URL` | — | Connection string direta (migrations) |
 | `PORT` | `3000` | Porta do servidor Express |
-| `DUMP1090_URL` | `http://192.168.15.18/dump1090/data/aircraft.json` | Feed ADS-B |
+| `DUMP1090_URL` | `http://<IP-DO-RECEPTOR>/dump1090/data/aircraft.json` | Feed ADS-B |
 | `POLL_INTERVAL_MS` | `5000` | Intervalo de coleta em ms |
 | `CORS_ORIGIN` | `*` | Origem permitida pelo CORS |
 
