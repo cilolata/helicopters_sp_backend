@@ -34,3 +34,18 @@ model Position {
   @@map("positions")
 }
 
+model DailyFlight {
+  id          Int      @id @default(autoincrement())
+  icao_hex    String   @db.VarChar(6)
+  flight_date String   @db.VarChar(10)
+  first_seen  DateTime @db.Timestamptz(6)
+  last_seen   DateTime @db.Timestamptz(6)
+  last_lat    Float?
+  last_lon    Float?
+  last_alt    Int?
+
+  @@unique([icao_hex, flight_date])
+  @@index([flight_date])
+  @@map("daily_flights")
+}
+

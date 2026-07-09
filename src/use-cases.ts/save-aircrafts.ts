@@ -40,6 +40,7 @@ export class SaveAircraftUseCase {
 
   async execute(response: Dump1090Response): Promise<void> {
     const now  = new Date();
+    const brtDate = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const live: LiveAircraft[] = [];
 
     const list = response.aircraft ?? response.ac ?? [];
@@ -56,13 +57,15 @@ export class SaveAircraftUseCase {
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
 
+      const alt = toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null;
+
       live.push({
         icao_hex:     icao,
         callsign:     ac.flight?.trim() ?? null,
         owner:        entry?.owner    ?? null,
         model:        entry?.model    ?? null,
         operator:     entry?.operator ?? null,
-        altitude:     toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null,
+        altitude:     alt,
         ground_speed: ac.gs ?? null,
         track:        ac.track ?? null,
         vert_rate:    ac.baro_rate ?? ac.vert_rate ?? null,
@@ -74,7 +77,8 @@ export class SaveAircraftUseCase {
       });
 
       await Promise.all([
-        this.repository.savePosition(icao, ac.lat!, ac.lon!, toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null),
+        this.repository.savePosition(icao, ac.lat!, ac.lon!, alt),
+        this.repository.saveDailyFlight(icao, brtDate, now, ac.lat!, ac.lon!, alt),
         this.repository.saveAircraft({
           icao_hex:      icao,
           first_seen:    now,

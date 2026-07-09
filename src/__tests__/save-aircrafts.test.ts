@@ -10,12 +10,13 @@ const testRegistry = new Map([
 ]);
 
 const mockRepo: IAircraftsRepository = {
-  savePosition:      jest.fn().mockResolvedValue(undefined),
-  saveAircraft:      jest.fn().mockResolvedValue(undefined),
-  findToday:         jest.fn().mockResolvedValue([]),
-  findByDate:        jest.fn().mockResolvedValue([]),
-  findForExport:     jest.fn().mockResolvedValue([]),
-  findRoute:         jest.fn().mockResolvedValue([]),
+  savePosition:       jest.fn().mockResolvedValue(undefined),
+  saveAircraft:       jest.fn().mockResolvedValue(undefined),
+  saveDailyFlight:    jest.fn().mockResolvedValue(undefined),
+  findToday:          jest.fn().mockResolvedValue([]),
+  findByDate:         jest.fn().mockResolvedValue([]),
+  findForExport:      jest.fn().mockResolvedValue([]),
+  findRoute:          jest.fn().mockResolvedValue([]),
   deleteOldPositions: jest.fn().mockResolvedValue(0),
 };
 

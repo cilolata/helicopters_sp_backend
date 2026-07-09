@@ -9,22 +9,14 @@ export class AircraftsRepository {
   }
 
   async findByDate(dateStr: string) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    if (m < 1 || m > 12 || d < 1 || d > 31) throw new Error('Data inválida');
-    // BRT 00:00:00 = UTC 03:00:00 / BRT 23:59:59 = UTC next-day 02:59:59
-    const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
-    const end   = new Date(Date.UTC(y, m - 1, d + 1, 2, 59, 59, 999));
-    // Use positions.captured_at to find every ICAO that actually flew that BRT day,
-    // regardless of when last_seen was updated (avoids missing overnight flights)
-    const seen = await prisma.position.groupBy({
-      by:    ['icao_hex'],
-      where: { captured_at: { gte: start, lte: end } },
-    });
-    if (seen.length === 0) return [];
-    return prisma.aircraft.findMany({
-      where:   { icao_hex: { in: seen.map(r => r.icao_hex) } },
-      orderBy: { last_seen: 'desc' },
-    });
+    type Row = { icao_hex: string; last_callsign: string | null; first_seen: Date; last_seen: Date };
+    return prisma.$queryRaw<Row[]>`
+      SELECT a.icao_hex, a.last_callsign, df.first_seen, df.last_seen
+      FROM daily_flights df
+      JOIN aircraft a ON a.icao_hex = df.icao_hex
+      WHERE df.flight_date = ${dateStr}
+      ORDER BY df.last_seen DESC
+    `;
   }
 
   async savePosition(icao_hex: string, lat: number, lon: number, altitude: number | null): Promise<void> {
@@ -45,10 +37,6 @@ export class AircraftsRepository {
   }
 
   async findForExport(dateStr: string) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    if (m < 1 || m > 12 || d < 1 || d > 31) throw new Error('Data inválida');
-    const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
-    const end   = new Date(Date.UTC(y, m - 1, d + 1, 2, 59, 59, 999));
     type Row = {
       icao_hex: string; last_callsign: string | null; owner: string | null;
       model: string | null; operator: string | null;
@@ -57,21 +45,18 @@ export class AircraftsRepository {
     };
     return prisma.$queryRaw<Row[]>`
       SELECT a.icao_hex, a.last_callsign, a.owner, a.model, a.operator,
-             a.first_seen, a.last_seen,
-             p.lat, p.lon, p.altitude
-      FROM aircraft a
-      LEFT JOIN LATERAL (
-        SELECT lat, lon, altitude FROM positions
-        WHERE icao_hex = a.icao_hex
-        ORDER BY captured_at DESC LIMIT 1
-      ) p ON true
-      WHERE a.last_seen >= ${start} AND a.last_seen <= ${end}
-      ORDER BY a.last_seen DESC
+             df.first_seen, df.last_seen,
+             df.last_lat AS lat, df.last_lon AS lon, df.last_alt AS altitude
+      FROM daily_flights df
+      JOIN aircraft a ON a.icao_hex = df.icao_hex
+      WHERE df.flight_date = ${dateStr}
+      ORDER BY df.last_seen DESC
     `;
   }
 
   async deleteOldPositions(): Promise<number> {
-    // Delete positions from before today's BRT midnight (= UTC 03:00 today)
+    // Delete positions from before today's BRT midnight (= UTC 03:00 today).
+    // History is kept in daily_flights; positions are only needed for live route display.
     const now = new Date();
     const cutoff = new Date(now);
     cutoff.setUTCHours(3, 0, 0, 0);
@@ -80,6 +65,14 @@ export class AircraftsRepository {
       where: { captured_at: { lt: cutoff } },
     });
     return result.count;
+  }
+
+  async saveDailyFlight(icao_hex: string, flight_date: string, now: Date, lat: number, lon: number, altitude: number | null): Promise<void> {
+    await prisma.dailyFlight.upsert({
+      where:  { icao_hex_flight_date: { icao_hex, flight_date } },
+      create: { icao_hex, flight_date, first_seen: now, last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
+      update: { last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
+    });
   }
 
   async saveAircraft(aircraft: AircraftDB): Promise<void> {
