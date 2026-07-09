@@ -1,13 +1,13 @@
 # Helicopters Radar SP — Backend
 
-API Node.js/Express que coleta sinais ADS-B de um receptor dump1090 local, persiste as posições em PostgreSQL e serve os dados para o frontend.
+API Node.js/Express que consome um feed ADS-B externo, persiste as posições em PostgreSQL e serve os dados para o frontend.
 
 ---
 
 ## Fluxo de dados
 
 ```
-dump1090 (/data/aircraft.json)
+Feed ADS-B (JSON)
         │
         │  HTTP GET a cada 5 s (scheduler.ts)
         ▼
@@ -79,16 +79,26 @@ src/
   utils/
     scheduler.ts                Loop de coleta (setInterval + flag running)
     cleanup.ts                  Limpeza diária de positions
+    brt.ts                      Utilitários de timezone BRT
   use-cases.ts/
     save-aircrafts.ts           Filtragem, persistência e atualização do cache
     get-helicopters-use-case.ts Lê o cache
-    get-today-aircrafts-use-case.ts  Delega ao repositório
+    get-today-aircrafts-use-case.ts
+    get-aircraft-history-use-case.ts
+    get-aircraft-export-use-case.ts
+    get-aircraft-route-use-case.ts
     factory/                    Wiring de dependências
   lib/
     aircraft-cache.ts           Array de módulo (LiveAircraft[]) — cache in-memory
     helicopter-registry.ts      Carrega anac-registry.json no startup
+  controllers/
+    get-helicopters.ts          GET /aircrafts
+    get-today-aircrafts.ts      GET /aircrafts/today
+    get-aircraft-history.ts     GET /aircrafts/history
+    get-aircraft-export.ts      GET /aircrafts/export
+    get-aircraft-route.ts       GET /aircrafts/:icao/route
+    validators.ts               Regex e helpers de validação de parâmetros
   repositories/db/aircrafts.ts  Queries Prisma (findByDate, findRoute, savePosition…)
-  controllers/aircrafts.ts      Handlers Express
   entities/models/              Interfaces TypeScript (AircraftRaw, AircraftDB…)
   config/database.ts            Instância do Prisma Client
 ```
@@ -104,7 +114,7 @@ Copie `backend/.env.example` para `backend/.env`:
 | `DATABASE_URL` | — | Connection string Prisma (pooler) |
 | `DIRECT_URL` | — | Connection string direta (migrations) |
 | `PORT` | `3000` | Porta do servidor Express |
-| `DUMP1090_URL` | `http://<IP-DO-RECEPTOR>/dump1090/data/aircraft.json` | Feed ADS-B |
+| `DUMP1090_HOST` | — | URL do feed ADS-B |
 | `POLL_INTERVAL_MS` | `5000` | Intervalo de coleta em ms |
 | `CORS_ORIGIN` | `*` | Origem permitida pelo CORS |
 
