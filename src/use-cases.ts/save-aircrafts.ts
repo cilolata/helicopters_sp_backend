@@ -51,16 +51,17 @@ export class SaveAircraftUseCase {
 
       const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
       const entry    = callsign ? this.registry.get(callsign) : undefined;
-      if (!entry) continue;
+      const isHelicopter = !!entry || ac.category === 'A7';
+      if (!isHelicopter) continue;
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
 
       live.push({
         icao_hex:     icao,
         callsign:     ac.flight?.trim() ?? null,
-        owner:        entry.owner,
-        model:        entry.model,
-        operator:     entry.operator,
+        owner:        entry?.owner    ?? null,
+        model:        entry?.model    ?? null,
+        operator:     entry?.operator ?? null,
         altitude:     toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null,
         ground_speed: ac.gs ?? null,
         track:        ac.track ?? null,
@@ -80,9 +81,9 @@ export class SaveAircraftUseCase {
           last_seen:     now,
           last_callsign: ac.flight?.trim().slice(0, 10) ?? null,
           last_squawk:   ac.squawk?.slice(0, 4) ?? null,
-          operator:      entry.operator ?? null,
-          owner:         entry.owner    ?? null,
-          model:         entry.model    ?? null,
+          operator:      entry?.operator ?? null,
+          owner:         entry?.owner    ?? null,
+          model:         entry?.model    ?? null,
         }),
       ]);
     }

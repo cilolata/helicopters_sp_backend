@@ -14,8 +14,15 @@ export class AircraftsRepository {
     // BRT 00:00:00 = UTC 03:00:00 / BRT 23:59:59 = UTC next-day 02:59:59
     const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
     const end   = new Date(Date.UTC(y, m - 1, d + 1, 2, 59, 59, 999));
+    // Use positions.captured_at to find every ICAO that actually flew that BRT day,
+    // regardless of when last_seen was updated (avoids missing overnight flights)
+    const seen = await prisma.position.groupBy({
+      by:    ['icao_hex'],
+      where: { captured_at: { gte: start, lte: end } },
+    });
+    if (seen.length === 0) return [];
     return prisma.aircraft.findMany({
-      where:   { last_seen: { gte: start, lte: end } },
+      where:   { icao_hex: { in: seen.map(r => r.icao_hex) } },
       orderBy: { last_seen: 'desc' },
     });
   }
