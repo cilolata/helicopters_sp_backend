@@ -68,11 +68,23 @@ export class AircraftsRepository {
   }
 
   async saveDailyFlight(icao_hex: string, flight_date: string, now: Date, lat: number, lon: number, altitude: number | null): Promise<void> {
-    await prisma.dailyFlight.upsert({
-      where:  { icao_hex_flight_date: { icao_hex, flight_date } },
-      create: { icao_hex, flight_date, first_seen: now, last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
-      update: { last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
+    // Gap > 15 min without a sighting = aircraft left SP; create a new visit record
+    const GAP_MS = 15 * 60 * 1000;
+    const cutoff = new Date(now.getTime() - GAP_MS);
+    const active = await prisma.dailyFlight.findFirst({
+      where:   { icao_hex, flight_date, last_seen: { gte: cutoff } },
+      orderBy: { last_seen: 'desc' },
     });
+    if (active) {
+      await prisma.dailyFlight.update({
+        where: { id: active.id },
+        data:  { last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
+      });
+    } else {
+      await prisma.dailyFlight.create({
+        data: { icao_hex, flight_date, first_seen: now, last_seen: now, last_lat: lat, last_lon: lon, last_alt: altitude },
+      });
+    }
   }
 
   async saveAircraft(aircraft: AircraftDB): Promise<void> {

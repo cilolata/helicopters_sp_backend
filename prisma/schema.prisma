@@ -44,7 +44,7 @@ model DailyFlight {
   last_lon    Float?
   last_alt    Int?
 
-  @@unique([icao_hex, flight_date])
+  @@index([icao_hex, flight_date, last_seen(sort: Desc)])
   @@index([flight_date])
   @@map("daily_flights")
 }
