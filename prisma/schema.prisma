@@ -34,6 +34,15 @@ model Position {
   @@map("positions")
 }
 
+model AnacRegistry {
+  registration String  @id @db.VarChar(8)
+  owner        String? @db.VarChar(300)
+  model        String? @db.VarChar(100)
+  operator     String? @db.VarChar(300)
+
+  @@map("anac_registry")
+}
+
 model DailyFlight {
   id          Int      @id @default(autoincrement())
   icao_hex    String   @db.VarChar(6)

@@ -30,3 +30,7 @@ temp/
 
 # OS
 Thumbs.db
+
+# Dados ANAC — carregados via banco, nunca commitados
+prisma/data/anac-registry.json
+prisma/data/helicopters.json

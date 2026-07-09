@@ -1,16 +1,21 @@
-import { readFileSync } from "fs";
-import { join } from "path";
+import prisma from "../config/database";
 
-interface AnacEntry {
-  owner: string | null;
-  model: string | null;
+export interface AnacEntry {
+  owner:    string | null;
+  model:    string | null;
   operator: string | null;
 }
 
-const data: Record<string, AnacEntry> = JSON.parse(
-  readFileSync(join(__dirname, "../../prisma/data/anac-registry.json"), "utf-8")
-);
-
-export const helicopterRegistry = new Map<string, AnacEntry>(Object.entries(data));
-
-console.log(`[anac-registry] ${helicopterRegistry.size} helicópteros carregados`);
+export async function loadHelicopterRegistry(): Promise<Map<string, AnacEntry>> {
+  const rows = await prisma.anacRegistry.findMany();
+  const registry = new Map<string, AnacEntry>();
+  for (const row of rows) {
+    registry.set(row.registration, {
+      owner:    row.owner,
+      model:    row.model,
+      operator: row.operator,
+    });
+  }
+  console.log(`[anac-registry] ${registry.size} helicópteros carregados`);
+  return registry;
+}

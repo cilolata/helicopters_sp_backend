@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Processa o CSV de aeronaves da ANAC e gera prisma/data/anac-registry.json
+ * Processa o CSV de aeronaves da ANAC e popula a tabela anac_registry no banco de dados.
  *
  * Uso:
  *   node scripts/build-anac-registry.js <dados_aeronaves.csv>
  *
- * Saída: { [MATRÍCULA]: { owner, model } }  — apenas helicópteros (CD_CLS começa com 'H')
+ * Filtra apenas helicópteros (TP_POUSO = HELICOPTERO) e faz upsert por matrícula.
  */
 
-const { createReadStream, writeFileSync, existsSync } = require('fs');
-const { createInterface }                             = require('readline');
-const { join }                                        = require('path');
+const { createReadStream, existsSync } = require('fs');
+const { createInterface }              = require('readline');
+const { PrismaClient }                 = require('@prisma/client');
 
 const csvPath = process.argv[2];
 if (!csvPath || !existsSync(csvPath)) {
@@ -48,48 +48,66 @@ function extractOwner(str) {
 }
 
 async function main() {
-  const rl = createInterface({ input: createReadStream(csvPath), crlfDelay: Infinity });
+  const prisma = new PrismaClient();
 
-  const registry = {};
-  let lineNo = 0;
-  let marcasIdx = -1, proprietariosIdx = -1, modeloIdx = -1, clsIdx = -1;
+  try {
+    const rl = createInterface({ input: createReadStream(csvPath), crlfDelay: Infinity });
 
-  for await (const raw of rl) {
-    const line = raw.trimEnd();
-    lineNo++;
+    const rows = [];
+    let lineNo = 0;
+    let marcasIdx = -1, proprietariosIdx = -1, modeloIdx = -1, clsIdx = -1;
 
-    if (lineNo === 1) continue;
+    for await (const raw of rl) {
+      const line = raw.trimEnd();
+      lineNo++;
 
-    if (lineNo === 2) {
-      const cols      = line.split(';').map(c => c.replace(/"/g, '').trim().toUpperCase());
-      marcasIdx        = cols.indexOf('MARCAS');
-      proprietariosIdx = cols.indexOf('PROPRIETARIOS');
-      modeloIdx        = cols.indexOf('DS_MODELO');
-      clsIdx           = cols.indexOf('TP_POUSO');
-      if (marcasIdx === -1 || clsIdx === -1) {
-        console.error('Colunas não encontradas:', cols.join(', '));
-        process.exit(1);
+      if (lineNo === 1) continue;
+
+      if (lineNo === 2) {
+        const cols      = line.split(';').map(c => c.replace(/"/g, '').trim().toUpperCase());
+        marcasIdx        = cols.indexOf('MARCAS');
+        proprietariosIdx = cols.indexOf('PROPRIETARIOS');
+        modeloIdx        = cols.indexOf('DS_MODELO');
+        clsIdx           = cols.indexOf('TP_POUSO');
+        if (marcasIdx === -1 || clsIdx === -1) {
+          console.error('Colunas não encontradas:', cols.join(', '));
+          process.exit(1);
+        }
+        continue;
       }
-      continue;
+
+      if (!line) continue;
+
+      const cols  = splitCsv(line);
+      const marca = cols[marcasIdx]?.trim().toUpperCase();
+      const cls   = cols[clsIdx]?.trim().toUpperCase();
+
+      if (marca && cls === 'HELICOPTERO') {
+        rows.push({
+          registration: marca,
+          owner: proprietariosIdx >= 0 ? extractOwner(cols[proprietariosIdx]) : null,
+          model: modeloIdx >= 0        ? cols[modeloIdx]?.trim() || null       : null,
+          operator: null,
+        });
+      }
     }
 
-    if (!line) continue;
+    console.log(`${rows.length} helicópteros encontrados no CSV — iniciando upsert...`);
 
-    const cols  = splitCsv(line);
-    const marca = cols[marcasIdx]?.trim().toUpperCase();
-    const cls   = cols[clsIdx]?.trim().toUpperCase();
-
-    if (marca && cls === 'HELICOPTERO') {
-      registry[marca] = {
-        owner: proprietariosIdx >= 0 ? extractOwner(cols[proprietariosIdx]) : null,
-        model: modeloIdx >= 0        ? cols[modeloIdx]?.trim() || null       : null,
-      };
+    let upserted = 0;
+    for (const row of rows) {
+      await prisma.anacRegistry.upsert({
+        where:  { registration: row.registration },
+        update: { owner: row.owner, model: row.model, operator: row.operator },
+        create: row,
+      });
+      upserted++;
     }
+
+    console.log(`✅ ${upserted} registros salvos em anac_registry`);
+  } finally {
+    await prisma.$disconnect();
   }
-
-  const outPath = join(__dirname, '../prisma/data/anac-registry.json');
-  writeFileSync(outPath, JSON.stringify(registry));
-  console.log(`${Object.keys(registry).length} helicópteros salvos em ${outPath}`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

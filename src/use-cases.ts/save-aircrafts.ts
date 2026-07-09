@@ -2,12 +2,9 @@ import { IAircraftsRepository } from "../repositories/aircrafts.repository.inter
 import { AircraftRaw, Dump1090Response } from "../entities/models/aircraft.interface";
 import { updateCache, LiveAircraft } from "../lib/aircraft-cache";
 import { brtDateString } from "../utils/brt";
+import { AnacEntry } from "../lib/helicopter-registry";
 
-export interface AnacEntry {
-  owner: string | null;
-  model: string | null;
-  operator: string | null;
-}
+export type { AnacEntry };
 
 function toAlt(v: number | string | null | undefined): number | null {
   if (v == null || v === 'ground') return null;

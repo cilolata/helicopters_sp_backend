@@ -4,7 +4,7 @@ import { Dump1090Response } from '../entities/models/aircraft.interface';
 import { getCache } from '../lib/aircraft-cache';
 
 const testRegistry = new Map([
-  ['PPAIS', { owner: 'LUCAS MARTINS CARDOSO', model: 'R44',  operator: null }],
+  ['PPAIS', { owner: 'JOÃO FICTÍCIO DA SILVA', model: 'R44',  operator: null }],
   ['PPDUM', { owner: 'DU MOTOS LTDA',          model: 'R66',  operator: null }],
   ['PRAEL', { owner: 'EMPRESA AEREA LTDA',      model: 'S61',  operator: null }],
 ]);
@@ -114,7 +114,7 @@ describe('SaveAircraftUseCase — filtragem de helicópteros', () => {
   it('inclui owner e model corretos no cache ao vivo', async () => {
     await useCase.execute(makeResponse({ flight: 'PPAIS' }));
     const cache = getCache();
-    expect(cache[0].owner).toBe('LUCAS MARTINS CARDOSO');
+    expect(cache[0].owner).toBe('JOÃO FICTÍCIO DA SILVA');
     expect(cache[0].model).toBe('R44');
   });
 
