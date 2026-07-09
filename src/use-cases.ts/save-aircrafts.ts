@@ -38,6 +38,11 @@ export class SaveAircraftUseCase {
     return !!ac.hex && ac.lat != null && ac.lon != null && (ac.messages ?? 0) >= 1;
   }
 
+  private isPolice(entry: AnacEntry | undefined): boolean {
+    const hay = `${entry?.owner ?? ''} ${entry?.operator ?? ''}`.toLowerCase();
+    return hay.includes('polici');
+  }
+
   async execute(response: Dump1090Response): Promise<void> {
     const now  = new Date();
     const brtDate = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -53,7 +58,8 @@ export class SaveAircraftUseCase {
       const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
       const entry    = callsign ? this.registry.get(callsign) : undefined;
       const isHelicopter = !!entry || ac.category === 'A7';
-      if (!isHelicopter) continue;
+      if (!isHelicopter)       continue;
+      if (this.isPolice(entry)) continue;
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
 
