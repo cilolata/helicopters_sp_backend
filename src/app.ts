@@ -5,7 +5,11 @@ import { rateLimit } from "express-rate-limit";
 import { env } from "./env";
 import "./utils/scheduler";
 import "./utils/cleanup";
-import { aircrafts, aircraftsToday, aircraftRoute, aircraftsHistory, aircraftsExport } from "./controllers/aircrafts";
+import { aircrafts } from "./controllers/get-helicopters";
+import { aircraftsToday } from "./controllers/get-today-aircrafts";
+import { aircraftsHistory } from "./controllers/get-aircraft-history";
+import { aircraftsExport } from "./controllers/get-aircraft-export";
+import { aircraftRoute } from "./controllers/get-aircraft-route";
 
 const app = express();
 

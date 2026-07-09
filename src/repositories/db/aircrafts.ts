@@ -1,11 +1,10 @@
 import { AircraftDB } from "../../entities/models/aircraft.interface";
 import prisma from "../../config/database";
+import { brtDateString, brtMidnightCutoff } from "../../utils/brt";
 
 export class AircraftsRepository {
   async findToday() {
-    // Get today's date in BRT (UTC-3)
-    const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
-    return this.findByDate(brtNow.toISOString().slice(0, 10));
+    return this.findByDate(brtDateString());
   }
 
   async findByDate(dateStr: string) {
@@ -24,10 +23,7 @@ export class AircraftsRepository {
   }
 
   async findRoute(icao_hex: string) {
-    // BRT midnight = UTC 03:00 of today in BRT
-    const brtNow = new Date(Date.now() - 3 * 60 * 60 * 1000);
-    const [y, m, d] = brtNow.toISOString().slice(0, 10).split('-').map(Number);
-    const start = new Date(Date.UTC(y, m - 1, d, 3, 0, 0, 0));
+    const start = brtMidnightCutoff();
     return prisma.position.findMany({
       where:   { icao_hex, captured_at: { gte: start } },
       select:  { lat: true, lon: true, captured_at: true },
@@ -55,14 +51,9 @@ export class AircraftsRepository {
   }
 
   async deleteOldPositions(): Promise<number> {
-    // Delete positions from before today's BRT midnight (= UTC 03:00 today).
     // History is kept in daily_flights; positions are only needed for live route display.
-    const now = new Date();
-    const cutoff = new Date(now);
-    cutoff.setUTCHours(3, 0, 0, 0);
-    if (cutoff > now) cutoff.setUTCDate(cutoff.getUTCDate() - 1);
     const result = await prisma.position.deleteMany({
-      where: { captured_at: { lt: cutoff } },
+      where: { captured_at: { lt: brtMidnightCutoff() } },
     });
     return result.count;
   }

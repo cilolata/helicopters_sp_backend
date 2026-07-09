@@ -1,15 +1,7 @@
 import { AircraftsRepository } from "../repositories/db/aircrafts";
+import { msUntilNextBRTMidnight } from "./brt";
 
 const repo = new AircraftsRepository();
-
-function msUntilNextBRTMidnight(): number {
-  const now = new Date();
-  // BRT midnight = 03:00 UTC
-  const next = new Date(now);
-  next.setUTCHours(3, 0, 0, 0);
-  if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
-  return next.getTime() - now.getTime();
-}
 
 async function runCleanup() {
   try {

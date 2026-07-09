@@ -1,5 +1,5 @@
-import { GetAllAircraftsUseCase } from "../get-helicopters-use-case";
+import { GetHelicoptersUseCase } from "../get-helicopters-use-case";
 
-export function makeGetHelicoptersUseCase(): GetAllAircraftsUseCase {
-  return new GetAllAircraftsUseCase();
+export function makeGetHelicoptersUseCase(): GetHelicoptersUseCase {
+  return new GetHelicoptersUseCase();
 }

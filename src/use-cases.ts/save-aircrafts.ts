@@ -1,6 +1,7 @@
 import { IAircraftsRepository } from "../repositories/aircrafts.repository.interface";
 import { AircraftRaw, Dump1090Response } from "../entities/models/aircraft.interface";
 import { updateCache, LiveAircraft } from "../lib/aircraft-cache";
+import { brtDateString } from "../utils/brt";
 
 export interface AnacEntry {
   owner: string | null;
@@ -39,13 +40,13 @@ export class SaveAircraftUseCase {
   }
 
   private isPolice(entry: AnacEntry | undefined): boolean {
-    const hay = `${entry?.owner ?? ''} ${entry?.operator ?? ''}`.toLowerCase();
-    return hay.includes('polici');
+    const ownerAndOperator = `${entry?.owner ?? ''} ${entry?.operator ?? ''}`.toLowerCase();
+    return ownerAndOperator.includes('polici');
   }
 
   async execute(response: Dump1090Response): Promise<void> {
     const now  = new Date();
-    const brtDate = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const brtDate = brtDateString(now);
     const live: LiveAircraft[] = [];
 
     const list = response.aircraft ?? response.ac ?? [];
@@ -58,12 +59,11 @@ export class SaveAircraftUseCase {
       const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
       const entry    = callsign ? this.registry.get(callsign) : undefined;
       const isHelicopter = !!entry || ac.category === 'A7';
-      if (!isHelicopter)       continue;
+      if (!isHelicopter)        continue;
       if (this.isPolice(entry)) continue;
 
       const icao = ac.hex.toUpperCase().padStart(6, "0");
-
-      const alt = toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null;
+      const alt  = toAlt(ac.alt_geom) ?? toAlt(ac.alt_baro) ?? null;
 
       live.push({
         icao_hex:     icao,

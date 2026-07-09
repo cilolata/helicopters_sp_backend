@@ -1,6 +1,6 @@
 import { getCache } from "../lib/aircraft-cache";
 
-export class GetAllAircraftsUseCase {
+export class GetHelicoptersUseCase {
   async execute() {
     return getCache();
   }
