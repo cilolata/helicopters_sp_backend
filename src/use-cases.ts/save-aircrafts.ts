@@ -38,7 +38,7 @@ export class SaveAircraftUseCase {
 
   private isPolice(entry: AnacEntry | undefined): boolean {
     const ownerAndOperator = `${entry?.owner ?? ''} ${entry?.operator ?? ''}`.toLowerCase();
-    return ownerAndOperator.includes('polici');
+    return ownerAndOperator.includes('polici') || ownerAndOperator.includes('POLÍCIA');
   }
 
   async execute(response: Dump1090Response): Promise<void> {
