@@ -26,6 +26,10 @@ export class SaveAircraftUseCase {
     minLon: -46.826, maxLon: -46.365,
   };
 
+  // Matrículas bloqueadas: nunca são salvas, agregadas ou enviadas ao front.
+  // Comparadas já normalizadas (maiúsculas, sem hífens).
+  private static readonly BLOCKED_CALLSIGNS = new Set(['PRPUB']);
+
   private isInSaoPaulo(ac: AircraftRaw): boolean {
     const { minLat, maxLat, minLon, maxLon } = SaveAircraftUseCase.SP_BOUNDS;
     return ac.lat! >= minLat && ac.lat! <= maxLat &&
@@ -54,6 +58,7 @@ export class SaveAircraftUseCase {
       if (ac.ground)              continue;
 
       const callsign = ac.flight ? normalizeCallsign(ac.flight) : '';
+      if (SaveAircraftUseCase.BLOCKED_CALLSIGNS.has(callsign)) continue;
       const entry    = callsign ? this.registry.get(callsign) : undefined;
       const isHelicopter = !!entry || ac.category === 'A7';
       if (!isHelicopter)        continue;
